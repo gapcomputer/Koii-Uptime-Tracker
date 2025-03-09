@@ -1,0 +1,4 @@
+UPDATED
+make it work on any computer, it should use a dynamic way to get the user’s home directory instead of hardcoding gap.
+Replaced $logDirectory = "C:\Users\gap\AppData\Roaming\KOII-Desktop-Node\uptime"
+with $logDirectory = [System.IO.Path]::Combine($env:APPDATA, "KOII-Desktop-Node\uptime")
