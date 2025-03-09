@@ -1,9 +1,6 @@
 You nedd to run Powershell with  admin rights, it may give you some errors or just stop, close it and relaunch it, this time will launch without errors and will start tracking uptime
 
 
-
-
-
 # Koii-Uptime-Tracker
 Koii Uptime Tracker
 This PowerShell script monitors the Koii Node process, tracks its uptime, CPU load, and memory usage, and logs this data to a file. Here’s what it does:
