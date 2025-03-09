@@ -91,9 +91,11 @@ function Monitor-KoiiNode {
                     # Load previous uptime if it exists
                     $previousUptime = if ($uptimeData.ContainsKey("LastUptime")) { [double]$uptimeData["LastUptime"] } else { 0 }
 
-                    # If the process restarted, add previous uptime to the current session uptime
+                    # Check if the process restarted
                     if ($uptimeData.ContainsKey("LastStartTime") -and [datetime]$uptimeData["LastStartTime"] -ne $startTime) {
+                        # Process restarted, accumulate previous uptime and reset new start time
                         $uptimeData["LastUptime"] = $previousUptime
+                        $previousUptime = 0  # Reset the previous uptime to zero for the new session
                     }
 
                     # Calculate current uptime
