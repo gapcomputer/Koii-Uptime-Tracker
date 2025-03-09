@@ -23,21 +23,25 @@ function Get-MonthKey {
 }
 
 # Load previous uptime data
-$uptimeData = @{}
+$uptimeData = @{ }
 if (Test-Path $uptimeFile) {
-    $uptimeData = (Get-Content $uptimeFile | ConvertFrom-Json)
+    $uptimeData = (Get-Content $uptimeFile | ConvertFrom-Json)  # Ensure this is a hashtable
     if ($uptimeData -is [PSCustomObject]) {
-        $uptimeData = @{}
+        $uptimeData = @{}  # Initialize as an empty hashtable if it's not a valid hashtable
     }
+} else {
+    $uptimeData = @{}  # Initialize as a Hashtable
 }
 
 # Load monthly uptime data
-$monthlyUptimeData = @{}
+$monthlyUptimeData = @{ }
 if (Test-Path $monthlyUptimeFile) {
-    $monthlyUptimeData = (Get-Content $monthlyUptimeFile | ConvertFrom-Json)
+    $monthlyUptimeData = (Get-Content $monthlyUptimeFile | ConvertFrom-Json)  # Ensure this is a hashtable
     if ($monthlyUptimeData -is [PSCustomObject]) {
-        $monthlyUptimeData = @{}
+        $monthlyUptimeData = @{}  # Initialize as an empty hashtable if it's not a valid hashtable
     }
+} else {
+    $monthlyUptimeData = @{}  # Initialize as a Hashtable
 }
 
 # Function to manage log file size
@@ -45,15 +49,25 @@ function Manage-LogFiles {
     $logFilePath = Join-Path -Path $uptimeDirectory -ChildPath "uptime_log.txt"
     $maxLogs = 2000
 
+    # Ensure log file exists
     if (-not (Test-Path $logFilePath)) {
         New-Item -Path $logFilePath -ItemType File -Force
     }
 
+    # Trim logs if too many
     $logEntries = Get-Content -Path $logFilePath
     if ($logEntries.Count -gt $maxLogs) {
         $logEntries[-$maxLogs..-1] | Set-Content -Path $logFilePath
     }
 }
+
+# Define bold-style words
+$boldWords = @(
+    "SMART Task", "Free Fire Task", "Free SOMA Task", "Big Big Task", "KPL token Miner",
+    "Reverie Field Compute", "Dangerous Dave", "PG - Wellcome Task", "Arweave Verifier",
+    "Koii AI Coach", "Mask Social Feeds", "Bonus Task", "Inflation Task", "Astrolink Task",
+    "Archive Twiter", "SMART Engagements", "Koii Twiter Archive", "Prometheus Task", "Attention Booster Task"
+)
 
 # Function to monitor Koii Node process
 function Monitor-KoiiNode {
@@ -63,22 +77,28 @@ function Monitor-KoiiNode {
         if ($processes) {
             foreach ($process in $processes) {
                 try {
+                    # Get process details via WMI
+                    $wmiProcess = Get-WmiObject -Class Win32_Process -Filter "ProcessId = $($process.Id)"
+                    $processPath = if ($wmiProcess.ExecutablePath) { $wmiProcess.ExecutablePath } else { "Path not available" }
+                    $commandLine = if ($wmiProcess.CommandLine) { $wmiProcess.CommandLine } else { "Command line not available" }
+
                     # Get process metrics
                     $processId = $process.Id
-                    $processName = $process.ProcessName
                     $startTime = $process.StartTime
                     $currentTime = Get-Date
                     $monthKey = Get-MonthKey
 
-                    # Load previous uptime
+                    # Load previous uptime if it exists
                     $previousUptime = if ($uptimeData.ContainsKey("LastUptime")) { [double]$uptimeData["LastUptime"] } else { 0 }
 
-                    # Check if process restarted
+                    # If the process restarted, add previous uptime to the current session uptime
                     if ($uptimeData.ContainsKey("LastStartTime") -and [datetime]$uptimeData["LastStartTime"] -ne $startTime) {
-                        $totalUptime = [math]::Round(($currentTime - $startTime).TotalHours + $previousUptime, 2)
-                    } else {
-                        $totalUptime = [math]::Round(($currentTime - $startTime).TotalHours, 2)
+                        $uptimeData["LastUptime"] = $previousUptime
                     }
+
+                    # Calculate current uptime
+                    $uptime = ($currentTime - $startTime).TotalHours
+                    $totalUptime = [math]::Round($uptime + $previousUptime, 2)
 
                     # Update uptime data
                     $uptimeData["LastUptime"] = $totalUptime
@@ -87,7 +107,7 @@ function Monitor-KoiiNode {
 
                     # Update monthly uptime tracking
                     if ($monthlyUptimeData.ContainsKey($monthKey)) {
-                        $monthlyUptimeData[$monthKey] = [math]::Round($monthlyUptimeData[$monthKey] + ($currentTime - $startTime).TotalHours, 2)
+                        $monthlyUptimeData[$monthKey] = [math]::Round($monthlyUptimeData[$monthKey] + $uptime, 2)
                     } else {
                         $monthlyUptimeData[$monthKey] = $totalUptime
                     }
@@ -116,8 +136,16 @@ function Monitor-KoiiNode {
                     # Set color for Memory Usage
                     $memoryColor = "Magenta"
 
-                    # Display process details
+                    # Display process details with Task name and PID, hiding the executable path
                     Write-Host "Task: $processName (PID: $processId)" -ForegroundColor Blue
+
+                    # Highlight bold-style words in command line (if needed)
+                    foreach ($word in $boldWords) {
+                        if ($commandLine -match $word) {
+                            Write-Host $word -ForegroundColor Yellow
+                        }
+                    }
+
                     Write-Host "Total Uptime: $totalUptime hours" -ForegroundColor $uptimeColor
                     Write-Host "CPU Load: $cpuLoad %" -ForegroundColor $cpuColor
                     Write-Host "Memory Usage: $memoryUsage MB" -ForegroundColor $memoryColor
@@ -132,7 +160,7 @@ function Monitor-KoiiNode {
                     # Manage log files
                     Manage-LogFiles
                 } catch {
-                    Write-Host "Error processing $($process.ProcessName) (PID: $($process.Id)): $_" -ForegroundColor Red
+                    Write-Host "Error processing Koii Node (PID: $($process.Id)): $_" -ForegroundColor Red
                 }
             }
         } else {
