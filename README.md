@@ -12,7 +12,7 @@ Sets the execution policy to RemoteSigned for the current user to allow the scri
 Creates Necessary Log Folders:
 
 The script ensures that the uptime directory exists at:
-C:\Users\gap\AppData\Roaming\KOII-Desktop-Node\uptime
+C:\Users\YOURUSERNAME\AppData\Roaming\KOII-Desktop-Node\uptime
 If the directory doesn’t exist, it is created.
 Tracks Uptime & Monthly Uptime:
 
